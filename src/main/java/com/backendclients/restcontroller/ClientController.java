@@ -1,6 +1,7 @@
 package com.backendclients.restcontroller;
 
 import java.util.List;
+import javax.validation.Valid;
 import org.springframework.http.HttpStatus;
 import com.backendclients.model.entity.Client;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +15,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RestController;
 import com.backendclients.businesslayer.service.IClientService;
-import java.util.logging.Logger;
+import com.backendclients.businesslayer.exception.ClientDuplicateException;
+import com.backendclients.businesslayer.exception.ClientNotFoundException;
 
 @RestController
 @RequestMapping("/api")
@@ -22,7 +24,6 @@ public class ClientController {
 	
 	@Autowired
 	private IClientService service;
-	private static final Logger LOG = Logger.getLogger("com.backendclients.restcontroller.ClientController");
 
 	@GetMapping("/clients")
 	public List<Client> clients() {
@@ -30,30 +31,29 @@ public class ClientController {
 	}
 	
 	@PostMapping("/addClient")
-	public ResponseEntity<Client> addClient(@RequestBody Client client) {
-		LOG.warning("Cliente repetido " + service.amountClientsEquals(client));
-		if(service.amountClientsEquals(client)>0) return new ResponseEntity<Client>(client, HttpStatus.CONFLICT);
+	public ResponseEntity<Client> addClient(@Valid @RequestBody Client client) {
+		if(service.amountClientsEquals(client)>0) throw new ClientDuplicateException("Cliente " + 
+				client.getName() + " " + client.getSurname() + " ya se encuentra registrado.");
 		service.saveClient(client);
 		return new ResponseEntity<Client>(client, HttpStatus.OK);
 	}
 	
 	@PutMapping("/updateClient/{clientId}")
-	public ResponseEntity<Client> updateClient(@RequestBody Client client, @PathVariable Long clientId) {
-		try { 
-			Client obj = service.getClient(clientId);
-			obj.setName(client.getName());
-			obj.setSurname(client.getSurname());
-			service.updateClient(obj);
-		} catch (Exception e) { return new ResponseEntity<Client>(client, HttpStatus.NOT_FOUND); }
+	public ResponseEntity<Client> updateClient(@Valid @RequestBody Client client, @PathVariable Long clientId) {
+		Client obj = service.getClient(clientId);
+		if(obj == null) throw new ClientNotFoundException("Cliente " + clientId + " no encontrado.");
+		obj.setName(client.getName());
+		obj.setSurname(client.getSurname());
+		obj.setAge(client.getAge());
+		obj.setEmail(client.getEmail());
+		service.updateClient(obj);
 		return new ResponseEntity<Client>(client, HttpStatus.OK);
 	}
 	
 	@DeleteMapping("/deleteClient/{clientId}")
 	public ResponseEntity<Long> deleteClient(@PathVariable Long clientId) {
-		try { 
-			Client obj = service.getClient(clientId);
-			LOG.warning("Cliente que desea eliminar " + obj.getId());
-		} catch (Exception e) { return new ResponseEntity<Long>(clientId, HttpStatus.NOT_FOUND); }
+		Client obj = service.getClient(clientId);
+		if(obj == null) throw new ClientNotFoundException("Cliente " + clientId + " no encontrado.");
 		service.deleteClient(clientId);
 		return new ResponseEntity<Long>(clientId, HttpStatus.OK);
 	}

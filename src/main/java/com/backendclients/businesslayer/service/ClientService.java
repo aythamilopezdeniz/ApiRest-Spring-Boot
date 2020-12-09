@@ -19,9 +19,10 @@ public class ClientService implements IClientService {
 
 	@Override
 	public Client getClient(Long clientId) {
-		Client obj = repository.findById(clientId).get();
-		if(obj.equals(null)) return null;
-		else return obj;
+		Client obj = null;
+		try { obj = repository.findById(clientId).get(); }
+		catch (Exception e) { return null; }
+		return obj;
 	}
 	
 	@Override
@@ -41,10 +42,6 @@ public class ClientService implements IClientService {
 
 	@Override
 	public void updateClient(Client client) {
-//		Client obj = getClient(client.getId());
-//		obj.setName(client.getName());
-//		obj.setSurname(client.getSurname());
-//		repository.save(obj);
 		repository.save(client);
 	}
 
